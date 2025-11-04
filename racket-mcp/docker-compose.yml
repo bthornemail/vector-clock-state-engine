@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: ..
+      dockerfile: racket-mcp/Dockerfile
+    container_name: cst-mcp-server
+    stdin_open: true
+    tty: true
+    # MCP servers communicate via stdio, so we keep the container running
+    # and attach to it for stdio communication
+    command: ["racket", "racket-mcp/src/mcp-server.rkt"]
+    volumes:
+      # Optional: mount source for development
+      - ../racket-unified:/app/racket-unified:ro
+      - ../racket-mcp:/app/racket-mcp:ro
+    # No ports needed - MCP uses stdio
+    environment:
+      - RACKET_VERSION=8.18
+    # Keep container running
+    restart: unless-stopped

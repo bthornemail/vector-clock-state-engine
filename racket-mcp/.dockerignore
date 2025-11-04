@@ -1,0 +1,27 @@
+# Ignore compiled files
+*.zo
+*.dep
+compiled/
+dist-newstyle/
+
+# Ignore build artifacts
+.git/
+.gitignore
+*.md
+README.md
+examples/
+
+# Ignore test files
+test/
+tests/
+*.test.*
+
+# Ignore documentation
+docs/
+*.md
+
+# Ignore Python/Node artifacts if any
+__pycache__/
+node_modules/
+*.pyc
+.pytest_cache/
