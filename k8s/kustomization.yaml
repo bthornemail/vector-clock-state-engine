@@ -1,0 +1,30 @@
+# Kustomization file for Computational Scheme Theory MCP Server
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: computational-scheme-theory
+
+resources:
+  - mcp-server.yaml
+
+commonLabels:
+  app: computational-scheme-theory
+  component: mcp-server
+
+images:
+  - name: cst-mcp-server
+    newName: cst-mcp-server
+    newTag: latest
+
+# Configurations
+configMapGenerator:
+  - name: mcp-server-config
+    literals:
+      - RACKET_VERSION=8.18
+      - MCP_PROTOCOL_VERSION=2024-11-05
+      - SERVER_NAME=computational-scheme-theory
+
+# Replicas (can be overridden)
+replicas:
+  - name: mcp-server
+    count: 1

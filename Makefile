@@ -1,7 +1,7 @@
 # Makefile for Computational Scheme Theory Project
 # Provides common build, test, and development targets
 
-.PHONY: help setup build test clean proto docker-up docker-down verify-env
+.PHONY: help setup build test clean proto docker-up docker-down verify-env mcp-build mcp-docker mcp-k8s-deploy mcp-k8s-undeploy mcp-k8s-logs
 
 # Default target
 help:
@@ -16,6 +16,11 @@ help:
 	@echo "  docker-up   - Start Docker services"
 	@echo "  docker-down - Stop Docker services"
 	@echo "  verify-env  - Verify development environment setup"
+	@echo "  mcp-build   - Build MCP server Docker image"
+	@echo "  mcp-docker  - Start MCP server via Docker Compose"
+	@echo "  mcp-k8s-deploy   - Deploy MCP server to Kubernetes"
+	@echo "  mcp-k8s-undeploy - Remove MCP server from Kubernetes"
+	@echo "  mcp-k8s-logs     - View MCP server logs in Kubernetes"
 	@echo ""
 
 # Setup - Install dependencies
@@ -143,4 +148,48 @@ docker-down:
 verify-env:
 	@echo "Verifying development environment..."
 	@./scripts/verify-env.sh
+
+# MCP Server targets
+mcp-build:
+	@echo "Building MCP server Docker image..."
+	@docker build -t cst-mcp-server:latest -f racket-mcp/Dockerfile .
+	@echo "✅ MCP server Docker image built"
+
+mcp-docker:
+	@echo "Starting MCP server via Docker Compose..."
+	@cd racket-mcp && docker compose up -d
+	@echo "✅ MCP server started (container: cst-mcp-server)"
+
+mcp-docker-stop:
+	@echo "Stopping MCP server..."
+	@cd racket-mcp && docker compose down
+	@echo "✅ MCP server stopped"
+
+mcp-k8s-deploy:
+	@echo "Deploying MCP server to Kubernetes..."
+	@kubectl apply -f k8s/mcp-server.yaml
+	@echo "✅ MCP server deployed to Kubernetes"
+	@echo "Waiting for deployment to be ready..."
+	@kubectl wait --for=condition=available --timeout=60s deployment/mcp-server -n computational-scheme-theory || true
+
+mcp-k8s-undeploy:
+	@echo "Removing MCP server from Kubernetes..."
+	@kubectl delete -f k8s/mcp-server.yaml || true
+	@echo "✅ MCP server removed from Kubernetes"
+
+mcp-k8s-logs:
+	@echo "Viewing MCP server logs..."
+	@kubectl logs -f deployment/mcp-server -n computational-scheme-theory || \
+		kubectl logs -f -l app=computational-scheme-theory,component=mcp-server -n computational-scheme-theory
+
+mcp-k8s-status:
+	@echo "MCP Server Status:"
+	@kubectl get deployment mcp-server -n computational-scheme-theory || echo "Deployment not found"
+	@kubectl get pods -l app=computational-scheme-theory,component=mcp-server -n computational-scheme-theory || echo "Pods not found"
+
+mcp-test:
+	@echo "Testing MCP server..."
+	@echo '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' | \
+		docker exec -i cst-mcp-server racket /app/racket-mcp/src/mcp-server.rkt 2>&1 | \
+		grep -q protocolVersion && echo "✅ MCP server responding correctly" || echo "❌ MCP server test failed"
 

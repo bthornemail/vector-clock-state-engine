@@ -5,7 +5,8 @@
          racket/string
          "json-rpc.rkt"
          "mcp-tools.rkt"
-         "mcp-resources.rkt")
+         "mcp-resources.rkt"
+         "mcp-prompts.rkt")
 
 (provide
  start-mcp-server)
@@ -23,7 +24,8 @@
   (hash 'protocolVersion MCP_PROTOCOL_VERSION
         'capabilities (hash
                       'tools (hash)
-                      'resources (hash))
+                      'resources (hash)
+                      'prompts (hash))
         'serverInfo (hash
                     'name "computational-scheme-theory"
                     'version "0.1.0")))
@@ -86,6 +88,22 @@
                                       'mimeType "text/plain"
                                       'text "Missing resource URI")))))))
 
+;; Prompts/list handler
+(define (handle-prompts-list params)
+  "Handle prompts/list request"
+  (hash 'prompts (get-mcp-prompts)))
+
+;; Prompts/get handler
+(define (handle-prompts-get params)
+  "Handle prompts/get request - returns prompt with argument substitution"
+  (with-handlers ([exn? (lambda (e)
+                         (hash 'error (format "Error getting prompt: ~a" (exn-message e))))])
+    (let* ([name (hash-ref params 'name #f)]
+           [arguments (hash-ref params 'arguments (hash))])
+      (if name
+          (get-mcp-prompt name arguments)
+          (hash 'error "Missing prompt name")))))
+
 ;; Method router
 (define (route-mcp-method method params)
   "Route MCP method to appropriate handler"
@@ -95,6 +113,8 @@
     [("tools/call") (handle-tools-call params)]
     [("resources/list") (handle-resources-list params)]
     [("resources/read") (handle-resources-read params)]
+    [("prompts/list") (handle-prompts-list params)]
+    [("prompts/get") (handle-prompts-get params)]
     [else #f]))
 
 ;; Process a single JSON-RPC request

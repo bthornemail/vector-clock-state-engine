@@ -239,105 +239,105 @@
 (define mcp-tool-definitions
   (list
    (hash 'name "compute_h1"
-         'description "Compute H¹ cohomology from Scheme source code using the unified pipeline"
+         'description "Compute H¹ cohomology (first Betti number) from Scheme source code using the unified pipeline. H¹ is a topological invariant computed from the static binding structure of the program, representing the complexity of the scope topology. This validates the Computational Scheme Theory hypothesis H¹ = V(G) - k where V(G) is cyclomatic complexity."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. Can be a single expression, lambda, or complete program."))
                       'required (list "source_code"))
          'handler tool-compute-h1)
    
    (hash 'name "compute_vg"
-         'description "Compute V(G) cyclomatic complexity from Scheme source (requires Racket service)"
+         'description "Compute V(G) cyclomatic complexity from Scheme source code. V(G) measures the number of linearly independent paths through a program's control flow graph. This is a dynamic complexity metric that complements the static H¹ metric. Requires Racket V(G) service to be available."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. The control flow graph will be constructed from the program structure."))
                       'required (list "source_code"))
          'handler tool-compute-vg)
    
    (hash 'name "validate_hypothesis"
-         'description "Validate the hypothesis H¹ = V(G) - k"
+         'description "Validate the Computational Scheme Theory hypothesis: H¹ = V(G) - k. This tests whether the static binding structure (H¹) corresponds to dynamic control flow complexity (V(G)). Returns validation result, difference, and explanatory message. Used to empirically validate the theoretical relationship between algebraic geometry and program complexity."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
-                                   'h1 (hash 'type "number" 'description "H¹ cohomology value")
-                                   'v_g (hash 'type "number" 'description "V(G) cyclomatic complexity")
-                                   'k (hash 'type "number" 'description "Normalization constant (default: 0)")
-                                   'tolerance (hash 'type "number" 'description "Allowed tolerance (default: 0)"))
+                                   'h1 (hash 'type "number" 'description "H¹ cohomology value (topological invariant from binding structure)")
+                                   'v_g (hash 'type "number" 'description "V(G) cyclomatic complexity (control flow metric)")
+                                   'k (hash 'type "number" 'description "Normalization constant accounting for baseline complexity (default: 0)")
+                                   'tolerance (hash 'type "number" 'description "Allowed numerical tolerance for floating-point comparison (default: 0)"))
                       'required (list "h1" "v_g"))
          'handler tool-validate-hypothesis)
    
    (hash 'name "process_natural_language"
-         'description "Convert natural language query to M-expression using SGP-ASLN"
+         'description "Convert natural language query to M-expression using SGP-ASLN (Semantic Grammar Parser - Abstract Syntax Language for Natural language). M-expressions represent user intent as meta-language commands that can be validated before execution. This enables deterministic natural language interfaces for the Computational Scheme Theory system."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'query (hash
                                           'type "string"
-                                          'description "Natural language query (e.g., 'compute H1 for program test')"))
+                                          'description "Natural language query describing an operation (e.g., 'compute H1 for program test', 'analyze binding structure', 'validate hypothesis')"))
                       'required (list "query"))
          'handler tool-process-natural-language)
    
    (hash 'name "build_cfg"
-         'description "Build control flow graph from Scheme source code"
+         'description "Build control flow graph (CFG) from Scheme source code. The CFG represents the dynamic execution flow of the program, identifying basic blocks, branches, loops, and control dependencies. Essential for computing cyclomatic complexity V(G) and understanding program structure."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. The CFG will be constructed by analyzing conditional expressions, loops, and function calls."))
                       'required (list "source_code"))
          'handler tool-build-cfg)
    
    (hash 'name "detect_combinators"
-         'description "Detect Y/Z combinators in Scheme source code"
+         'description "Detect Y/Z combinators and other recursive patterns in Scheme source code. Combinators enable recursion without explicit self-reference, representing fixed-point computations. Detection helps identify programs with complex recursive structures that may have higher complexity metrics."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. The tool will scan for Y-combinator, Z-combinator, and other recursive patterns."))
                       'required (list "source_code"))
          'handler tool-detect-combinators)
    
    (hash 'name "analyze_program"
-         'description "Comprehensive program analysis combining H¹, CFG, and combinators"
+         'description "Comprehensive program analysis combining H¹ cohomology, control flow graph structure, cyclomatic complexity, and combinator detection. Provides a complete view of both static (binding structure) and dynamic (control flow) complexity metrics. Returns integrated analysis results with insights about program complexity."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. The tool performs multiple analyses in parallel and returns combined results."))
                       'required (list "source_code"))
          'handler tool-analyze-program)
    
    (hash 'name "parse_m_expression"
-         'description "Parse M-expression from string representation"
+         'description "Parse M-expression from string representation. M-expressions are meta-language commands representing user intent that can be validated before execution. This tool parses the string format and returns the structured M-expression with operation name and arguments."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'expression (hash
                                                'type "string"
-                                               'description "M-expression as string (e.g., '(createBinding x scope1)')"))
+                                               'description "M-expression as string in S-expression format (e.g., '(createBinding x scope1)', '(computeH1 program)', '(validateHypothesis h1 vg k)')"))
                       'required (list "expression"))
          'handler tool-parse-m-expression)
    
    (hash 'name "convert_m_to_s"
-         'description "Convert M-expression to S-expression"
+         'description "Convert M-expression (meta-language command) to S-expression (object-language event). This implements the M/S-expression duality: M-expressions represent validatable user intent, while S-expressions represent immutable facts that are appended to the event log. Essential for event sourcing architecture."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'm_expression (hash
                                                  'type "string"
-                                                 'description "M-expression as string")
+                                                 'description "M-expression as string in S-expression format (e.g., '(createBinding x scope1)')")
                                    'proof (hash
                                           'type "string"
-                                          'description "Proof/metadata string (optional)"))
+                                          'description "Proof/metadata string describing the transformation or validation (optional, default: 'mcp-conversion')"))
                       'required (list "m_expression"))
          'handler tool-convert-m-to-s)
    
@@ -353,24 +353,24 @@
          'handler tool-extract-bindings)
    
    (hash 'name "get_cfg_complexity"
-         'description "Get cyclomatic complexity from CFG (local computation, no service required)"
+         'description "Get cyclomatic complexity V(G) from control flow graph. Computes V(G) = E - N + 2P where E is edges, N is nodes, and P is connected components. This is computed locally without requiring external services. V(G) measures the number of linearly independent paths through the program."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'source_code (hash
                                                 'type "string"
-                                                'description "Scheme source code to analyze"))
+                                                'description "R5RS Scheme source code to analyze. The tool builds the CFG and computes complexity metrics locally."))
                       'required (list "source_code"))
          'handler tool-get-cfg-complexity)
    
    (hash 'name "analyze_file"
-         'description "Analyze a Scheme file from disk"
+         'description "Analyze a Scheme file from disk. Reads the file, performs comprehensive analysis (H¹, CFG, complexity, combinators), and returns integrated results. Supports both absolute and relative paths. Useful for analyzing programs in test corpora or existing codebases."
          'inputSchema (hash
                       'type "object"
                       'properties (hash
                                    'file_path (hash
                                               'type "string"
-                                              'description "Path to Scheme file (absolute or relative)"))
+                                              'description "Path to Scheme file (absolute path like '/path/to/file.scm' or relative path like 'test.scm' relative to current working directory)"))
                       'required (list "file_path"))
          'handler tool-analyze-file)))
 

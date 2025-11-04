@@ -1,0 +1,147 @@
+# Kubernetes Manifests for Computational Scheme Theory MCP Server
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: computational-scheme-theory
+  labels:
+    app: computational-scheme-theory
+    component: mcp-server
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-server-config
+  namespace: computational-scheme-theory
+data:
+  RACKET_VERSION: "8.18"
+  MCP_PROTOCOL_VERSION: "2024-11-05"
+  SERVER_NAME: "computational-scheme-theory"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: computational-scheme-theory
+  labels:
+    app: computational-scheme-theory
+    component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: computational-scheme-theory
+      component: mcp-server
+  template:
+    metadata:
+      labels:
+        app: computational-scheme-theory
+        component: mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: cst-mcp-server:latest
+        imagePullPolicy: IfNotPresent
+        command: ["racket"]
+        args: ["/app/racket-mcp/src/mcp-server.rkt"]
+        stdin: true
+        tty: true
+        env:
+        - name: RACKET_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: mcp-server-config
+              key: RACKET_VERSION
+        - name: MCP_PROTOCOL_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: mcp-server-config
+              key: MCP_PROTOCOL_VERSION
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - echo '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' | racket /app/racket-mcp/src/mcp-server.rkt | grep -q protocolVersion
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - echo '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' | racket /app/racket-mcp/src/mcp-server.rkt | grep -q protocolVersion
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: racket-unified
+          mountPath: /app/racket-unified
+          readOnly: true
+        - name: racket-mcp
+          mountPath: /app/racket-mcp
+          readOnly: true
+      volumes:
+      - name: racket-unified
+        configMap:
+          name: racket-unified-source
+          optional: true
+      - name: racket-mcp
+        configMap:
+          name: racket-mcp-source
+          optional: true
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: computational-scheme-theory
+  labels:
+    app: computational-scheme-theory
+    component: mcp-server
+spec:
+  type: ClusterIP
+  # Note: MCP uses stdio, so this service is primarily for service discovery
+  # Actual communication happens via stdio through exec/attach
+  ports:
+  - name: stdio
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: computational-scheme-theory
+    component: mcp-server
+---
+# ServiceAccount for MCP server (if needed for future integrations)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-server
+  namespace: computational-scheme-theory
+  labels:
+    app: computational-scheme-theory
+    component: mcp-server
+---
+# Pod Disruption Budget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mcp-server-pdb
+  namespace: computational-scheme-theory
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      app: computational-scheme-theory
+      component: mcp-server
